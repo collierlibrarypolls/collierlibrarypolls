@@ -35,7 +35,7 @@ function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localSto
 const rid=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,b=>'abcdefghjkmnpqrstuvwxyz23456789'[b%31]).join('');};
 let me=store('voter')||rid(12);store('voter',me);
 let poll=null,votes=[],mine={},myName=store('name')||'',draft=[''],confirmDel=false,msg='';
-function el(t,p,...k){const e=document.createElement(t);for(const x in p||{}){if(x==='class')e.className=p[x];else if(x.startsWith('on'))e.addEventListener(x.slice(2),p[x]);else e[x]=p[x];}k.flat().forEach(c=>e.append(c));return e;}
+function el(t,p,...k){const e=document.createElement(t);for(const x in p||{}){if(x==='class')e.className=p[x];else if(x.startsWith('on'))e.addEventListener(x.slice(2),p[x]);else e[x]=p[x];}k.flat().filter(c=>c!==null&&c!==undefined&&c!==false).forEach(c=>e.append(c));return e;}
 function fmt(v){const d=new Date(v);return isNaN(d)?v:d.toLocaleString(undefined,{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});}
 if(SUPABASE_URL.includes('YOUR-PROJECT')){$('#poll-desc').textContent='Setup needed: add your Supabase URL and key at the top of this file.';return;}
 async function load(first){
@@ -50,8 +50,8 @@ async function load(first){
   }catch(e){$('#poll-desc').textContent='Could not load the poll. Please try again shortly.';}
 }
 function renderCreate(){
-  app.textContent='';$('#poll-desc').textContent='Pick a few dates and times, then share the link.';
-  const t=el('input',{type:'text',placeholder:'e.g. Book club meeting'}), d=el('textarea',{rows:2,placeholder:'Optional details'});
+  app.textContent='';$('#poll-desc').textContent='Select dates and times, then share the link.';
+  const t=el('input',{type:'text',placeholder:'Meeting Title'}), d=el('textarea',{rows:2,placeholder:'Optional details'});
   const list=el('div'), err=el('p',{class:'muted'});
   const now=new Date(), min=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const draw=()=>{list.textContent='';draft.forEach((v,i)=>{
@@ -153,12 +153,20 @@ function renderPoll(){
   const share=location.origin+location.pathname+'?poll='+pid;
   app.append(el('div',{class:'card'},el('p',{class:'muted'},'Share this link with participants:'),el('div',{class:'link'},share)));
   if(adminKey){
+    const organizerUrl=location.origin+location.pathname+'?poll='+encodeURIComponent(pid)+'&key='+encodeURIComponent(adminKey);
+    const organizerLink=el('a',{href:organizerUrl,target:'_blank',rel:'noopener noreferrer'},'Open management page in a new tab');
     app.append(el('div',{class:'card'},
-      el('p',{class:'muted'},'Organizer tools (keep this page’s address private; it allows poll management)'),
+      el('p',{class:'muted'},'Organizer tools (keep the management link private; it allows poll management)'),
+      el('div',{class:'link'},organizerUrl),
+      el('div',{class:'row'},
+        el('button',{class:'ghost',onclick:()=>{navigator.clipboard.writeText(organizerUrl).then(()=>{msg='Organizer link copied.';renderPoll();}).catch(()=>{msg='Copy failed. Select and copy the management link above.';renderPoll();});}},'Copy organizer link'),
+        organizerLink
+      ),
       el('div',{class:'row'},
         el('button',{class:'ghost',onclick:renderEdit},'Edit poll'),
         !confirmDel?el('button',{class:'danger',onclick:()=>{confirmDel=true;renderPoll();}},'Delete poll'):null
       ),
+      msg?el('p',{class:'muted'},msg):null,
       confirmDel?el('div',{},el('p',{},'Delete this poll and all votes?'),el('div',{class:'row'},
         el('button',{class:'danger',onclick:async()=>{try{await api('rpc/delete_poll',{method:'POST',body:JSON.stringify({p_id:pid,p_key:adminKey})});location.href=location.pathname;}catch(e){msg='Could not delete.';confirmDel=false;renderPoll();}}},'Yes, delete'),
         el('button',{class:'ghost',onclick:()=>{confirmDel=false;renderPoll();}},'Cancel'))):null
