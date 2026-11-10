@@ -9,6 +9,12 @@
 #poll-app{--bg:#f6f7f9;--card:#fff;--text:#1b1f27;--muted:#677084;--line:#e2e5eb;--accent:#2f6fed;--yes:#2e9e5b;--maybe:#e5a13a;--no:#d9dde4;--best:#e8f5ec;color-scheme:light}
 @media (prefers-color-scheme:dark){#poll-app{--bg:#14171c;--card:#1d2128;--text:#eceff4;--muted:#98a1b3;--line:#2f3541;--accent:#6b9cff;--yes:#3bb571;--maybe:#e0a53f;--no:#3a404c;--best:#1c3a2a;color-scheme:dark}}
 #poll-app *{box-sizing:border-box}#poll-app{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}#poll-app main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}#poll-app h2{font-size:1.6rem;margin:.2em 0}#poll-app .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-top:16px}#poll-app .muted{color:var(--muted)}#poll-app label{display:block;font-weight:600;margin:12px 0 4px}#poll-app input[type=text],#poll-app input[type=date],#poll-app select,#poll-app textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}#poll-app button{font:inherit;border:0;border-radius:10px;padding:10px 16px;background:var(--accent);color:#fff;cursor:pointer;font-weight:600}#poll-app button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}#poll-app button.danger{background:transparent;color:#d64545;border:1px solid var(--line)}#poll-app .row{display:flex;gap:8px;align-items:center;margin-top:8px}#poll-app .actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}#poll-app .row select,#poll-app .row input[type=date]{width:auto;flex:1;min-width:0;cursor:pointer}#poll-app .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}#poll-app table{border-collapse:separate;border-spacing:4px;width:100%;min-width:max-content}#poll-app th{font-weight:600;font-size:.85rem;padding:6px 8px;text-align:center}#poll-app td.name{text-align:left;padding:6px 8px;white-space:nowrap;font-weight:600}#poll-app td.c{text-align:center;border-radius:8px;min-width:84px;height:38px;font-weight:700;color:#fff}#poll-app td.c.yes{background:var(--yes)}#poll-app td.c.maybe{background:var(--maybe)}#poll-app td.c.no,#poll-app td.c.none{background:var(--no);color:var(--muted)}#poll-app td.c.mine{cursor:pointer;outline:2px solid var(--accent)}#poll-app tr.sum td{font-size:.85rem;color:var(--muted);text-align:center;padding-top:8px}#poll-app th.best,#poll-app td.best{background:var(--best);border-radius:8px}#poll-app .legend{font-size:.85rem;color:var(--muted);margin-top:10px}#poll-app .link{word-break:break-all;font-size:.9rem;background:var(--bg);padding:8px 10px;border-radius:8px;border:1px solid var(--line)}
+  #poll-app .link{word-break:break-all;font-size:.9rem;background:var(--bg);padding:8px 10px;border-radius:8px;border:1px solid var(--line)}
+
+#poll-app .error{
+  color:#d64545;
+  font-weight:600;
+}
   </style>
 </head>
 <body>
@@ -52,7 +58,7 @@ async function load(first){
 function renderCreate(){
   app.textContent='';$('#poll-desc').textContent='Select dates and times, then share the link.';
   const t=el('input',{type:'text',placeholder:'Meeting Title'}), d=el('textarea',{rows:2,placeholder:'Optional details'});
-  const list=el('div'), err=el('p',{class:'muted'});
+  const list=el('div'), err=el('p',{class:'error'});
   const now=new Date(), min=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const draw=()=>{list.textContent='';draft.forEach((v,i)=>{
     const parts=(v||'').split('T'), open=e=>{try{e.target.showPicker()}catch(x){}};
@@ -82,7 +88,7 @@ function renderEdit(){
   $('#poll-desc').textContent='Edit the poll details and date/time options. Existing responses are retained for options whose IDs are kept.';
   const t=el('input',{type:'text',value:poll.title||'',placeholder:'Poll title'});
   const d=el('textarea',{rows:2,value:poll.description||'',placeholder:'Optional details'});
-  const list=el('div'),err=el('p',{class:'muted'});
+  const list=el('div'),err=el('p',{class:'error'});
   let editDraft=(poll.options||[]).map(o=>({id:o.id,label:o.label}));
   const now=new Date(),min=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const draw=()=>{
