@@ -57,7 +57,7 @@ function renderCreate(){
   const draw=()=>{list.textContent='';draft.forEach((v,i)=>{
     const parts=(v||'').split('T'), open=e=>{try{e.target.showPicker()}catch(x){}};
     const upd=()=>{if(dI.value&&!tS.value)tS.value='09:00';draft[i]=(dI.value&&tS.value)?dI.value+'T'+tS.value:'';};
-    const dI=el('input',{type:'date',value:parts[0]||'',min:min,onchange:upd,onclick:open,onfocus:open,onkeydown:e=>{if(e.key==='Enter'||e.key===' ')open(e);if(e.key!=='Tab')e.preventDefault();},onpaste:e=>e.preventDefault()});
+    const dI=el('input',{type:'date',value:parts[0]||'',min:min,onchange:upd});
     const tS=el('select',{onchange:upd},el('option',{value:'',textContent:'Time'}));
     for(let h=8;h<=16;h++)for(let m=0;m<60;m+=15){if(h===16&&m>0)break;tS.append(el('option',{value:String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'),textContent:((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')}));}
     tS.value=parts[1]||'';
@@ -76,6 +76,55 @@ function renderCreate(){
   app.append(el('div',{class:'card'},el('label',{},'Title'),t,el('label',{},'Description'),d,el('label',{},'Date & time options'),list,
     el('div',{class:'row'},el('button',{class:'ghost',onclick:()=>{draft.push('');draw();}},'+ Add option')),el('div',{class:'row'},go),err));
 }
+
+function renderEdit(){
+  app.textContent='';
+  $('#poll-desc').textContent='Edit the poll details and date/time options. Existing responses are retained for options whose IDs are kept.';
+  const t=el('input',{type:'text',value:poll.title||'',placeholder:'Poll title'});
+  const d=el('textarea',{rows:2,value:poll.description||'',placeholder:'Optional details'});
+  const list=el('div'),err=el('p',{class:'muted'});
+  let editDraft=(poll.options||[]).map(o=>({id:o.id,label:o.label}));
+  const now=new Date(),min=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const draw=()=>{
+    list.textContent='';
+    editDraft.forEach((item,i)=>{
+      const parts=(item.label||'').split('T');
+      const upd=()=>{
+        item.label=(dI.value&&tS.value)?dI.value+'T'+tS.value:'';
+      };
+      const dI=el('input',{type:'date',value:parts[0]||'',min:min,onchange:upd});
+      const tS=el('select',{onchange:upd},el('option',{value:'',textContent:'Time'}));
+      for(let h=8;h<=16;h++)for(let m=0;m<60;m+=15){
+        if(h===16&&m>0)break;
+        tS.append(el('option',{value:String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'),textContent:((h%12)||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM')}));
+      }
+      tS.value=parts[1]||'';
+      list.append(el('div',{class:'row'},dI,tS,el('button',{class:'ghost',title:'Remove option',onclick:()=>{editDraft.splice(i,1);draw();}},'\u2715')));
+    });
+  };
+  draw();
+  const save=el('button',{onclick:async()=>{
+    const opts=editDraft.filter(x=>x.label&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x.label))
+      .sort((a,b)=>a.label.localeCompare(b.label))
+      .map(x=>({id:x.id||rid(8),label:x.label}));
+    if(!t.value.trim()){err.textContent='Enter a poll title.';return;}
+    if(opts.length<2){err.textContent='Keep at least two complete date/time options.';return;}
+    if(new Set(opts.map(x=>x.id)).size!==opts.length){err.textContent='The poll contains duplicate option identifiers. Please reload and try again.';return;}
+    try{
+      await api('rpc/update_poll',{method:'POST',body:JSON.stringify({p_id:pid,p_key:adminKey,p_title:t.value.trim(),p_description:d.value.trim(),p_options:opts})});
+      poll.title=t.value.trim();poll.description=d.value.trim();poll.options=opts;msg='Poll updated.';renderPoll();
+    }catch(e){err.textContent='Could not update the poll. Check the organizer link and Supabase update function.';}
+  }},'Save changes');
+  app.append(el('div',{class:'card'},
+    el('label',{},'Poll title'),t,
+    el('label',{},'Description'),d,
+    el('label',{},'Date & time options'),list,
+    el('div',{class:'row'},el('button',{class:'ghost',onclick:()=>{editDraft.push({id:rid(8),label:''});draw();}},'+ Add option')),
+    el('div',{class:'row'},save,el('button',{class:'ghost',onclick:renderPoll},'Cancel')),
+    err
+  ));
+}
+
 function score(o){let y=0,m=0;votes.forEach(v=>{const a=(v.answers||{})[o.id];if(a==='yes')y++;else if(a==='maybe')m++;});return{y,m};}
 function renderPoll(){
   if(!poll)return;
@@ -104,11 +153,16 @@ function renderPoll(){
   const share=location.origin+location.pathname+'?poll='+pid;
   app.append(el('div',{class:'card'},el('p',{class:'muted'},'Share this link with participants:'),el('div',{class:'link'},share)));
   if(adminKey){
-    app.append(el('div',{class:'card'},el('p',{class:'muted'},'Organizer tools (keep this page\u2019s address private: it lets you delete the poll)'),
-      !confirmDel?el('button',{class:'danger',onclick:()=>{confirmDel=true;renderPoll();}},'Delete poll')
-      :el('div',{},el('p',{},'Delete this poll and all votes?'),el('div',{class:'row'},
+    app.append(el('div',{class:'card'},
+      el('p',{class:'muted'},'Organizer tools (keep this page’s address private; it allows poll management)'),
+      el('div',{class:'row'},
+        el('button',{class:'ghost',onclick:renderEdit},'Edit poll'),
+        !confirmDel?el('button',{class:'danger',onclick:()=>{confirmDel=true;renderPoll();}},'Delete poll'):null
+      ),
+      confirmDel?el('div',{},el('p',{},'Delete this poll and all votes?'),el('div',{class:'row'},
         el('button',{class:'danger',onclick:async()=>{try{await api('rpc/delete_poll',{method:'POST',body:JSON.stringify({p_id:pid,p_key:adminKey})});location.href=location.pathname;}catch(e){msg='Could not delete.';confirmDel=false;renderPoll();}}},'Yes, delete'),
-        el('button',{class:'ghost',onclick:()=>{confirmDel=false;renderPoll();}},'Cancel')))));
+        el('button',{class:'ghost',onclick:()=>{confirmDel=false;renderPoll();}},'Cancel'))):null
+    ));
   }
 }
 if(!pid){renderCreate();}else{load(true);setInterval(()=>load(false),20000);}
