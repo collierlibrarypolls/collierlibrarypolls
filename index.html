@@ -162,10 +162,10 @@ function renderPoll(){
   if(adminKey){
     const organizerUrl=location.origin+location.pathname+'?poll='+encodeURIComponent(pid)+'&key='+encodeURIComponent(adminKey);
     app.append(el('div',{class:'card'},
-      el('p',{class:'muted'},'Organizer tools (keep the management link private; it allows poll management)'),
+      el('p',{class:'muted'},'Organizer Tools'),
       el('div',{class:'link'},organizerUrl),
       el('div',{class:'actions'},
-        el('button',{class:'ghost',onclick:()=>{navigator.clipboard.writeText(organizerUrl).then(()=>{msg='Organizer link copied.';renderPoll();}).catch(()=>{msg='Copy failed. Select and copy the management link above.';renderPoll();});}},'Copy organizer link'),
+        el('button',{class:'ghost',onclick:()=>{navigator.clipboard.writeText(organizerUrl).then(()=>{msg='Organizer link copied.';renderPoll();}).catch(()=>{msg='Copy failed. Select and copy the management link above.';renderPoll();});}},'Copy organizer Link'),
         el('button',{class:'ghost',onclick:()=>window.open(organizerUrl,'_blank','noopener,noreferrer')},'Open management page in a new tab'),
         el('button',{class:'ghost',onclick:renderEdit},'Edit poll'),
         !confirmDel?el('button',{class:'danger',onclick:()=>{confirmDel=true;renderPoll();}},'Delete poll'):null
